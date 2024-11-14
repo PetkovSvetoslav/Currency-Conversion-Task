@@ -1,8 +1,8 @@
 # Currency Conversion Application
 
 This application is a self-contained RESTful service built using Spring Boot that provides currency exchange rate functionality, conversion services, and transaction history management. 
-It integrates with an external exchange rate provider for real-time rates and supports both in-memory H2 database operations for persistence and testing.
-There are added (documented) settings for working with PostgreSql DB.
+It integrates with an external exchange rate provider for real-time rates and supports both in-memory & H2 database operations for persistence and testing.
+There are added (documented) settings for working with PostgreSQL DB, by default now work with H2 for easier testing.
 We use exchangerate.host API key for exchange rate integration. 
 ---
 
@@ -13,6 +13,17 @@ We use exchangerate.host API key for exchange rate integration.
 - **Error Handling**: Provides meaningful error messages and HTTP response codes.
 
 ---
+
+## H2 Database Configuration
+- **JDBC URL**: `jdbc:h2:mem:exchangeApp`
+- **Console URL**: `http://localhost:8080/h2-console`
+- **Username**: `sa`
+- **Password**: (empty)
+
+### Sample Query
+```sql
+SELECT * FROM currency_conversion;
+```
 
 ## Application Structure
 
@@ -190,11 +201,4 @@ SELECT * FROM currency_conversion;
    ```bash
    docker run -p 8080:8080 currency-conversion-app
    ```
-
----
-
-## Notes
-- Ensure you have a valid external API key for exchange rate integration.
-- For demo purposes, the application uses an in-memory H2 database.
-- Extend the application to support caching or rate-limiting as needed.
 
