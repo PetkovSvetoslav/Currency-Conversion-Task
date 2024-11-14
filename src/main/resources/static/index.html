@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Currency Conversion</title>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 50%;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        form, .filters {
+            margin-bottom: 20px;
+        }
+        select, input, button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 1em;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #result, #history {
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        #result {
+            min-height: 120px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .transaction {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .transaction:last-child {
+            border-bottom: none;
+        }
+        button {
+            background-color: #2c5f34;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #06402b;
+        }
+        button:focus {
+            outline: none;
+        }
+    </style>
+    <script>
+        async function populateCurrencyDropdowns() {
+            const response = await fetch(`/api/currency-code`);
+            if (response.ok) {
+                const currencyCodes = await response.json();
+                const fromDropdown = document.getElementById("fromCurrency");
+                const toDropdown = document.getElementById("toCurrency");
+
+                currencyCodes.forEach((code) => {
+                    const option = document.createElement("option");
+                    option.value = code.code;
+                    option.text = `${code.code} - ${code.description}`;
+                    fromDropdown.appendChild(option.cloneNode(true));
+                    toDropdown.appendChild(option);
+                });
+            } else {
+                console.error("Failed to fetch currency codes");
+            }
+        }
+
+        async function convertCurrency() {
+            const fromCurrency = document.getElementById("fromCurrency").value;
+            const toCurrency = document.getElementById("toCurrency").value;
+            const amount = document.getElementById("amount").value;
+
+            const resultBox = document.getElementById("result");
+            resultBox.innerHTML = "Processing your conversion...";
+
+            const response = await fetch(`/api/conversion`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    fromCurrency: fromCurrency,
+                    toCurrency: toCurrency,
+                    amount: parseFloat(amount),
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                resultBox.innerHTML = `
+                    <p><strong>Transaction ID:</strong> ${data.transactionId}</p>
+                    <p><strong>From:</strong> ${data.fromCurrency}</p>
+                    <p><strong>To:</strong> ${data.toCurrency}</p>
+                    <p><strong>Original Amount:</strong> ${data.originalAmount}</p>
+                    <p><strong>Converted Amount:</strong> ${data.convertedAmount}</p>
+                    <p><strong>Conversion Time:</strong> ${data.conversionTime}</p>
+                `;
+            } else {
+                const error = await response.text();
+                resultBox.innerHTML = `<p style="color: red;">Error: ${error}</p>`;
+            }
+        }
+
+        async function fetchAllHistory() {
+            const historyContainer = document.getElementById("history");
+
+            const response = await fetch(`/api/conversion/history`);
+
+            if (response.ok) {
+                const history = await response.json();
+                if (history.length === 0) {
+                    historyContainer.textContent = "No transactions found.";
+                } else {
+                    historyContainer.innerHTML = "";
+                    history.forEach((transaction) => {
+                        const transactionDiv = document.createElement("div");
+                        transactionDiv.classList.add("transaction");
+                        transactionDiv.innerHTML = `
+                            <p><strong>Transaction ID:</strong> ${transaction.transactionId}</p>
+                            <p><strong>From:</strong> ${transaction.fromCurrency}</p>
+                            <p><strong>To:</strong> ${transaction.toCurrency}</p>
+                            <p><strong>Original Amount:</strong> ${transaction.originalAmount}</p>
+                            <p><strong>Converted Amount:</strong> ${transaction.convertedAmount}</p>
+                            <p><strong>Conversion Time:</strong> ${transaction.conversionTime}</p>
+                        `;
+                        historyContainer.appendChild(transactionDiv);
+                    });
+                }
+            } else {
+                historyContainer.textContent = "Error fetching all transaction history.";
+            }
+        }
+
+        async function fetchHistoryByDate() {
+            const date = document.getElementById("filterDate").value;
+            const historyContainer = document.getElementById("history");
+
+            if (!date) {
+                historyContainer.textContent = "Please select a date.";
+                return;
+            }
+
+            const response = await fetch(`/api/conversion/history/date?date=${date}`);
+
+            if (response.ok) {
+                const history = await response.json();
+                if (history.length === 0) {
+                    historyContainer.textContent = "No transactions found for the selected date.";
+                } else {
+                    historyContainer.innerHTML = "";
+                    history.forEach((transaction) => {
+                        const transactionDiv = document.createElement("div");
+                        transactionDiv.classList.add("transaction");
+                        transactionDiv.innerHTML = `
+                            <p><strong>Transaction ID:</strong> ${transaction.transactionId}</p>
+                            <p><strong>From:</strong> ${transaction.fromCurrency}</p>
+                            <p><strong>To:</strong> ${transaction.toCurrency}</p>
+                            <p><strong>Original Amount:</strong> ${transaction.originalAmount}</p>
+                            <p><strong>Converted Amount:</strong> ${transaction.convertedAmount}</p>
+                            <p><strong>Conversion Time:</strong> ${transaction.conversionTime}</p>
+                        `;
+                        historyContainer.appendChild(transactionDiv);
+                    });
+                }
+            } else {
+                historyContainer.textContent = "Error fetching transaction history by date.";
+            }
+        }
+
+        window.onload = populateCurrencyDropdowns;
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>Currency Conversion</h1>
+    <form onsubmit="event.preventDefault(); convertCurrency();">
+        <label for="fromCurrency">From Currency:</label>
+        <select id="fromCurrency" required></select>
+        <label for="toCurrency">To Currency:</label>
+        <select id="toCurrency" required></select>
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" required />
+        <button type="submit">Convert</button>
+    </form>
+    <h2>Result:</h2>
+    <div id="result">
+        <p>Conversion details will appear here after submission.</p>
+    </div>
+    <div class="filters">
+        <h2>Transaction History Filters:</h2>
+        <button onclick="fetchAllHistory()">Show All History</button>
+        <label for="filterDate">Filter by Date:</label>
+        <input type="date" id="filterDate" />
+        <button onclick="fetchHistoryByDate()">Filter by Date</button>
+    </div>
+    <h2>Transaction History:</h2>
+    <div id="history">
+        <p>No transactions found.</p>
+    </div>
+</div>
+</body>
+</html>
