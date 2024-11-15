@@ -35,6 +35,9 @@ SELECT * FROM currency_conversion;
 ├── src
 │   ├── main
 │   │   ├── java
+│   │   │   ├── config
+│   │   │   │   └── CurrencyCodeInitializer.java
+│   │   │   │   └── RestTemplateConfig.java
 │   │   │   ├── controller
 │   │   │   │   └── CurrencyCodeService.java
 │   │   │   │   └── CurrencyConversionController.java
@@ -59,6 +62,8 @@ SELECT * FROM currency_conversion;
 │   │   │   │   └── CurrencyConversionRepository.java
 │   │   │   │   └── ExchangeRateRepository.java
 │   │   │   ├── exception
+│   │   │   │   └── ExchangeRateNotFoundException.java
+│   │   │   │   └── ExternalApiException.java
 │   │   │   │   └── GlobalExceptionHandler.java
 │   │   │   └── Application.java
 │   │   ├── resources
