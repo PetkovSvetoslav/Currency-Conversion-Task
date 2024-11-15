@@ -190,3 +190,6 @@ SELECT * FROM currency_conversion;
    docker run -p 8080:8080 currency-conversion-app
    ```
 
+![exCodes](https://github.com/user-attachments/assets/2387d66c-1b74-431e-ac53-fe549d372e75)
+![ex](https://github.com/user-attachments/assets/7c8467de-558e-4e09-bd6f-40d77ac18958)
+
