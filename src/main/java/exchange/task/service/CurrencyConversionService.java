@@ -2,10 +2,14 @@ package exchange.task.service;
 
 import exchange.task.dto.ConversionRequest;
 import exchange.task.dto.ConversionResponse;
+import exchange.task.exception.ExchangeRateNotFoundException;
+import exchange.task.exception.ExternalApiException;
 import exchange.task.model.CurrencyConversion;
 import exchange.task.repository.CurrencyConversionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +31,8 @@ public class CurrencyConversionService {
     private final ExchangeRateService exchangeRateService;
 
     private final RestTemplate restTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionService.class);
+    private static final String SUCCESS_STATUS = "SUCCESS";
 
     @Value("${external.api.key}")
     private String apiKey;
@@ -34,19 +42,28 @@ public class CurrencyConversionService {
         String toCurrency = conversionRequest.getToCurrency();
         Double amount = conversionRequest.getAmount();
 
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("API Access Key is missing. Please configure 'external.api.key' in application.properties.");
+        }
+
         String apiUrl = "https://api.exchangerate.host/convert?from=" + fromCurrency
                 + "&to=" + toCurrency
                 + "&amount=" + amount
                 + "&access_key=" + apiKey;
 
-        ResponseEntity<Map> response = restTemplate.getForEntity(apiUrl, Map.class);
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                apiUrl,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {}
+        );
 
-        if (response.getStatusCode() == HttpStatus.OK) {
-            Map body = response.getBody();
-            System.out.println("API Response: " + body);
+        if (response.getStatusCode().is2xxSuccessful()) {
+            Map<String, Object> body = response.getBody();
 
             if (body == null || body.get("result") == null) {
-                throw new IllegalArgumentException("Exchange rate not available for " + fromCurrency + " to " + toCurrency);
+                logger.error("Exchange rate not available for {} to {}", fromCurrency, toCurrency);
+                throw new ExchangeRateNotFoundException("Exchange rate not available for " + fromCurrency + " to " + toCurrency);
             }
 
             Double convertedAmount = Double.valueOf(body.get("result").toString());
@@ -63,6 +80,8 @@ public class CurrencyConversionService {
 
             currencyConversionRepository.save(conversion);
 
+            logger.info("Transaction ID: {}, Converted Amount: {}", transactionId, convertedAmount);
+
             return ConversionResponse.builder()
                     .transactionId(transactionId)
                     .fromCurrency(fromCurrency)
@@ -70,14 +89,14 @@ public class CurrencyConversionService {
                     .originalAmount(amount)
                     .convertedAmount(convertedAmount)
                     .conversionTime(LocalDateTime.now())
-                    .status("SUCCESS")
+                    .status(SUCCESS_STATUS)
                     .build();
         } else {
-            throw new RuntimeException("Failed to fetch exchange rate from external API");
+            logger.error("Failed to fetch exchange rate from external API. HTTP Status: {}", response.getStatusCode());
+            throw new ExternalApiException("Failed to fetch exchange rate from external API");
         }
     }
-
-
+    
     public Optional<ConversionResponse> getConversionByTransactionId(String transactionId) {
         return currencyConversionRepository.findByTransactionId(transactionId)
                 .map(conversion -> ConversionResponse.builder()
@@ -87,7 +106,7 @@ public class CurrencyConversionService {
                         .originalAmount(conversion.getOriginalAmount())
                         .convertedAmount(conversion.getConvertedAmount())
                         .conversionTime(conversion.getConversionTime())
-                        .status("SUCCESS")
+                        .status(SUCCESS_STATUS)
                         .build());
     }
 
@@ -106,7 +125,7 @@ public class CurrencyConversionService {
                         .originalAmount(conversion.getOriginalAmount())
                         .convertedAmount(conversion.getConvertedAmount())
                         .conversionTime(conversion.getConversionTime())
-                        .status("SUCCESS")
+                        .status(SUCCESS_STATUS)
                         .build())
                 .toList();
     }
@@ -122,7 +141,7 @@ public class CurrencyConversionService {
                         .originalAmount(conversion.getOriginalAmount())
                         .convertedAmount(conversion.getConvertedAmount())
                         .conversionTime(conversion.getConversionTime())
-                        .status("SUCCESS")
+                        .status(SUCCESS_STATUS)
                         .build())
                 .toList();
     }
