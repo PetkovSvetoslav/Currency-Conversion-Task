@@ -3,7 +3,10 @@
 This application is a self-contained RESTful service built using Spring Boot that provides currency exchange rate functionality, conversion services, and transaction history management. 
 It integrates with an external exchange rate provider for real-time rates and supports both in-memory & H2 database operations for persistence and testing.
 There are added (documented) settings for working with PostgreSQL DB, by default now work with H2 for easier testing.
-We use exchangerate.host API key for exchange rate integration. 
+I use exchangerate.host API key for exchange rate integration. 
+I created a simple frontend that uses all backend endpoints for easy testing. 
+- **App URL start on**: `http://localhost:8080/`
+
 ---
 
 ## Features
