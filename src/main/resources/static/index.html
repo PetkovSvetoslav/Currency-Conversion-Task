@@ -30,13 +30,13 @@
             border: 1px solid #ddd;
             border-radius: 5px;
         }
-        #result, #history {
+        #result, #history, #transactionResult, #currencyResult {
             padding: 15px;
             background: #e9ecef;
             border-radius: 5px;
             margin-top: 10px;
         }
-        #result {
+        #result, #transactionResult, #currencyResult {
             min-height: 120px;
             text-align: center;
             line-height: 1.6;
@@ -183,6 +183,48 @@
             }
         }
 
+        async function fetchTransactionById() {
+            const transactionId = document.getElementById("transactionIdInput").value;
+            const resultBox = document.getElementById("transactionResult");
+
+            if (!transactionId) {
+                resultBox.innerHTML = `<p style="color: red;">Please enter a Transaction ID.</p>`;
+                return;
+            }
+
+            const response = await fetch(`/api/conversion/${transactionId}`);
+            if (response.ok) {
+                const data = await response.json();
+                resultBox.innerHTML = `
+                    <p><strong>Transaction ID:</strong> ${data.transactionId}</p>
+                    <p><strong>From:</strong> ${data.fromCurrency}</p>
+                    <p><strong>To:</strong> ${data.toCurrency}</p>
+                    <p><strong>Original Amount:</strong> ${data.originalAmount}</p>
+                    <p><strong>Converted Amount:</strong> ${data.convertedAmount}</p>
+                    <p><strong>Conversion Time:</strong> ${data.conversionTime}</p>
+                `;
+            } else {
+                resultBox.innerHTML = `<p style="color: red;">Transaction not found.</p>`;
+            }
+        }
+
+        async function fetchAllSupportedCurrencies() {
+            const resultBox = document.getElementById("currencyResult");
+
+            const response = await fetch(`/api/currency-code`);
+            if (response.ok) {
+                const currencies = await response.json();
+                resultBox.innerHTML = "";
+                currencies.forEach((currency) => {
+                    resultBox.innerHTML += `
+                        <p><strong>Code:</strong> ${currency.code}, <strong>Description:</strong> ${currency.description}</p>
+                    `;
+                });
+            } else {
+                resultBox.innerHTML = `<p style="color: red;">Error fetching supported currencies.</p>`;
+            }
+        }
+
         window.onload = populateCurrencyDropdowns;
     </script>
 </head>
@@ -212,6 +254,23 @@
     <h2>Transaction History:</h2>
     <div id="history">
         <p>No transactions found.</p>
+    </div>
+    <div class="additional-actions">
+        <h2>Additional Actions:</h2>
+        <label for="transactionIdInput">Enter Transaction ID:</label>
+        <input type="text" id="transactionIdInput" placeholder="Enter Transaction ID" />
+        <button onclick="fetchTransactionById()">Fetch Transaction by ID</button>
+    </div>
+    <h2>Transaction Details:</h2>
+    <div id="transactionResult">
+        <p>Transaction details will appear here.</p>
+    </div>
+    <div class="additional-actions">
+        <button onclick="fetchAllSupportedCurrencies()">View Supported Currencies</button>
+    </div>
+    <h2>Supported Currencies:</h2>
+    <div id="currencyResult">
+        <p>Supported currencies will appear here.</p>
     </div>
 </div>
 </body>
